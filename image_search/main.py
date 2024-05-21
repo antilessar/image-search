@@ -3,6 +3,7 @@ from sentence_transformers import SentenceTransformer
 import vecs
 from matplotlib import pyplot as plt
 from matplotlib import image as mpimg
+import argparse
 
 DB_CONNECTION = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
@@ -50,7 +51,7 @@ def seed():
     images.create_index()
     print("Created index")
 
-def search():
+def search(search_query):
     # create vector store client
     vx = vecs.create_client(DB_CONNECTION)
     images = vx.get_or_create_collection(name="image_vectors", dimension=512)
@@ -58,7 +59,7 @@ def search():
     # Load CLIP model
     model = SentenceTransformer('clip-ViT-B-32')
     # Encode text query
-    query_string = "the eiffel tower"
+    query_string = search_query
     text_emb = model.encode(query_string)
 
     # query the collection filtering metadata for "type" = "jpeg"
@@ -73,3 +74,25 @@ def search():
     image = mpimg.imread('./images/' + result)
     plt.imshow(image)
     plt.show()
+
+
+def search_command():
+    parser = argparse.ArgumentParser(description='Search images with a prompt.')
+    parser.add_argument('--query', type=str, required=True, help='Search query for the search command')
+    args = parser.parse_args()
+    search(args.query)
+    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Search images with a prompt.')
+    parser.add_argument('command', choices=['seed', 'search'], help='Command to run (seed or search)')
+    parser.add_argument('--query', type=str, help='Search query for the search command')
+
+    args = parser.parse_args()
+
+    if args.command == 'seed':
+        seed()
+    elif args.command == 'search':
+        if not args.query:
+            print("Please provide a search query with the --query option.")
+        else:
+            search(args.query)
